@@ -11,6 +11,8 @@ from flask import (
 )
 
 
+from FDataBase import FDataBase
+
 import sqlite3
 import os
 
@@ -49,7 +51,8 @@ menu = [{'name': 'Установка', 'url': 'install-flask'},
 @app.route('/')
 def index():
     db = get_db()
-    return render_template('index.html', title='Про Flask', menu=menu)
+    dbase = FDataBase(db)
+    return render_template('index.html', title='Про Flask', menu=dbase.get_menu())
 
 
 def get_db():
