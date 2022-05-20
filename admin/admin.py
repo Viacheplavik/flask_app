@@ -1,6 +1,7 @@
 import sqlite3
 
 from flask import Blueprint
+from flask import Flask
 from flask import (
     request,
     redirect,
@@ -10,16 +11,15 @@ from flask import (
     session,
     g
 )
-from flask import Flask
 
 app = Flask(__name__)
 
 admin = Blueprint('admin', __name__, template_folder='templates', static_folder='static')
 
-menu = [{'url': '.index', 'title': 'Панель'},
-        {'url': '.listpubs', 'title': 'Список статей'},
-        {'url': '.listusers', 'title': 'Список пользователей'},
-        {'url': '.logout', 'title': 'Выйти'}]
+menu = [{'url': '.index', 'title': 'Panel'},
+        {'url': '.list_pubs', 'title': 'Articles List'},
+        {'url': '.list_users', 'title': 'Users List'},
+        {'url': '.logout', 'title': 'Exit'}]
 
 db = None
 
@@ -31,17 +31,17 @@ def before_request():
 
 
 @admin.teardown_request
-def teardown_request(request):
+def teardown_request(_request):
     global db
     db = None
-    return request
+    return _request
 
 
 def login_admin():
     session['admin_logged'] = 1
 
 
-def isLogged():
+def is_logged():
     return True if session.get('admin_logged') else False
 
 
@@ -51,15 +51,15 @@ def logout_admin():
 
 @admin.route('/')
 def index():
-    if not isLogged():
+    if not is_logged():
         return redirect(url_for('.login'))
 
-    return render_template('admin/index.html', menu=menu, title='Админ-панель')
+    return render_template('admin/index.html', menu=menu, title='Admin-panel')
 
 
 @admin.route('/login', methods=['POST', 'GET'])
 def login():
-    if isLogged():
+    if is_logged():
         return redirect(url_for('admin.index'))
 
     if request.method == 'POST':
@@ -67,49 +67,49 @@ def login():
             login_admin()
             return redirect(url_for('admin.index'))
         else:
-            flash('Неверная пара логин/пароль')
-    return render_template('admin/login.html', title='Админ-панель')
+            flash('Invalid login/password pair')
+    return render_template('admin/login.html', title='Admin-panel')
 
 
 @admin.route('/logout', methods=['POST', 'GET'])
 def logout():
-    if not isLogged():
+    if not is_logged():
         return redirect(url_for('admin.login'))
 
     logout_admin()
 
     return redirect(url_for('admin.login'))
 
+
 @admin.route('/list-pubs')
-def listpubs():
-    if not isLogged():
+def list_pubs():
+    if not is_logged():
         return redirect(url_for('.login'))
 
-    list = []
+    posts = list()
     if db:
         try:
             cur = db.cursor()
             cur.execute(f"SELECT title, text, url FROM posts")
-            list = cur.fetchall()
+            posts = cur.fetchall()
         except sqlite3.Error as e:
-            print("Ошибка получения статей из БД " + str(e))
+            print("Error getting articles from the database " + str(e))
 
-    return render_template('admin/listpubs.html', title='Список статей', menu=menu, list=list)
+    return render_template('admin/list_pubs.html', title='List of articles', menu=menu, list=posts)
 
 
 @admin.route('/list-users')
-def listusers():
-    if not isLogged():
+def list_users():
+    if not is_logged():
         return redirect(url_for('.login'))
 
-    list = []
+    users = list()
     if db:
         try:
             cur = db.cursor()
             cur.execute(f"SELECT name, email FROM users ORDER BY time DESC")
-            list = cur.fetchall()
+            users = cur.fetchall()
         except sqlite3.Error as e:
-            print("Ошибка получения статей из БД " + str(e))
+            print("Error getting articles from the database " + str(e))
 
-    return render_template('admin/listusers.html', title='Список статей', menu=menu, list=list)
-
+    return render_template('admin/list_users.html', title='List of articles', menu=menu, list=users)
